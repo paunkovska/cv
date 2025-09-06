@@ -440,7 +440,7 @@
                 job5Title: 'Menadžer | Salon za Masažu PERFETA, Skoplje',
                 job5Bullet1: '• Osnovala je i uspješno vodila privatni salon za masažu, pokazujući si-ne poduzetničke i menadžerske vještine.',
                 job5Bullet2: '• Pružala je cijeli niz usluga masaže i wellnessa, gradeći lojalnu klijentelu tijekom 15 godina.',
-                job5Bullet3: '• Nadgledala je sve aspekte poslovanja, uključujući raspored klijenata, inventar i financijsko upravljanje.',
+                job5Bullet3: '• Nadgledala je sve aspekte poslovanja, uključujući raspored klijenata, inven-tar i financijsko upravljanje.',
                 skillsTitle: 'Vještine i Certifikati',
                 skillsSubtitle: 'Sažetak mojih profesionalnih kvalifikacija i jezičnih sposobnosti.',
                 languagesTitle: 'Poznavanje Jezika',
@@ -618,6 +618,17 @@
             const mobileDownloadPdfLink = document.getElementById('mobile-download-pdf');
             const mobileDownloadWordLink = document.getElementById('mobile-download-word');
 
+            const setLanguageInUrl = (lang) => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('lang', lang);
+                history.pushState({}, '', url.toString());
+            };
+
+            const getLanguageFromUrl = () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('lang') || 'en';
+            };
+
             mobileMenuButton.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
             });
@@ -680,18 +691,15 @@
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
                     const lang = e.target.closest('a').dataset.lang;
+                    setLanguageInUrl(lang);
                     updateLanguage(lang);
                     dropdownContent.classList.remove('show');
                     mobileDropdownContent.classList.remove('show');
-                    const selectedFlag = document.getElementById('selected-flag');
-                    const selectedLangText = document.getElementById('selected-lang-text');
-                    const mobileSelectedFlag = document.getElementById('mobile-selected-flag');
-                    const mobileSelectedLangText = document.getElementById('mobile-selected-lang-text');
                     const selectedLang = languageData.find(l => l.code === lang);
-                    selectedFlag.textContent = selectedLang.flag;
-                    selectedLangText.textContent = selectedLang.name;
-                    mobileSelectedFlag.textContent = selectedLang.flag;
-                    mobileSelectedLangText.textContent = selectedLang.name;
+                    document.getElementById('selected-flag').textContent = selectedLang.flag;
+                    document.getElementById('selected-lang-text').textContent = selectedLang.name;
+                    document.getElementById('mobile-selected-flag').textContent = selectedLang.flag;
+                    document.getElementById('mobile-selected-lang-text').textContent = selectedLang.name;
                 });
             });
 
@@ -704,8 +712,17 @@
                 }
             });
 
+            const initialLang = getLanguageFromUrl();
+            const initialLangData = languageData.find(l => l.code === initialLang);
+            if (initialLangData) {
+                updateLanguage(initialLang);
+                document.getElementById('selected-flag').textContent = initialLangData.flag;
+                document.getElementById('selected-lang-text').textContent = initialLangData.name;
+                document.getElementById('mobile-selected-flag').textContent = initialLangData.flag;
+                document.getElementById('mobile-selected-lang-text').textContent = initialLangData.name;
+            }
+
             renderLanguageGauges();
-            updateLanguage('en');
         });
     </script>
 </body>
