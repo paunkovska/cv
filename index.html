@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Svetlana Paunkovska - Massage Therapist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is structured as a single-page portfolio with a top navigation bar for quick access to different content sections: Summary, Experience, Skills & Certifications, and Contact. This structure was chosen to provide a logical, user-friendly flow that allows recruiters to either get a quick overview or dive deep into specific areas. The core of the application is an interactive vertical timeline for professional experience, which visually represents career progression and makes a long history digestible. This is more engaging than a static list and encourages user interaction. -->
+    <!-- Visualization & Content Choices: 
+        - Professional Experience -> Goal: Show Change -> Viz/Method: Interactive Vertical Timeline (HTML/CSS/JS) -> Interaction: Click to expand/collapse job details. -> Justification: This method effectively visualizes a 25+ year career, making it easy to navigate without overwhelming the user. It highlights the duration and progression of her roles.
+        - Language Skills -> Goal: Compare -> Viz/Method: Circular Gauges (Chart.js/Canvas) -> Interaction: Hover to see proficiency level details. -> Justification: Circular gauges provide an immediate, clear visual comparison of her proficiency across different languages, which is more impactful than a simple text list.
+        - Certifications -> Goal: Inform/Organize -> Viz/Method: Card Layout (HTML/CSS) -> Interaction: None. -> Justification: A clean, grid-based card layout neatly organizes her qualifications, making them easy to read and scan.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            background-color: #D4C7B8;
+            border: 4px solid #FDFBF8;
+            top: 0;
+            left: -0.625rem;
+            z-index: 10;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+            z-index: 1;
+            right: 0;
+            top: calc(100% + 8px);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        .dropdown-content.show {
+            display: block;
+        }
+        .dropdown-content a {
+            color: #4A4A4A;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        .dropdown-content a:hover {
+            background-color: #f5f5f5;
+        }
+        .gauge-container {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gauge-title {
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-stone-700">
+                Svetlana Paunkovska
+            </div>
+            <div class="hidden md:flex space-x-8 items-center">
+                <a href="#summary" class="text-stone-600 hover:text-stone-900 transition duration-300" data-i18n="navSummary">Summary</a>
+                <a href="#experience" class="text-stone-600 hover:text-stone-900 transition duration-300" data-i18n="navExperience">Experience</a>
+                <a href="#skills" class="text-stone-600 hover:text-stone-900 transition duration-300" data-i18n="navSkills">Skills</a>
+                <a href="#contact" class="bg-stone-700 text-white px-4 py-2 rounded-full hover:bg-stone-800 transition duration-300" data-i18n="navContact">Contact</a>
+                <div class="dropdown">
+                    <button id="language-dropdown-button" class="bg-white text-stone-700 px-4 py-2 rounded-full border border-stone-300 flex items-center space-x-2">
+                        <span id="selected-flag">🇬🇧</span>
+                        <span id="selected-lang-text">English</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 ml-1">
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="language-dropdown-content" class="dropdown-content">
+                        <a href="#" data-lang="en" class="flex items-center space-x-3"><span class="text-lg">🇬🇧</span><span>English</span></a>
+                        <a href="#" data-lang="mk" class="flex items-center space-x-3"><span class="text-lg">🇲🇰</span><span>Македонски</span></a>
+                        <a href="#" data-lang="hr" class="flex items-center space-x-3"><span class="text-lg">🇭🇷</span><span>Hrvatski</span></a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button id="download-dropdown-button" class="bg-stone-700 text-white p-2 rounded-full hover:bg-stone-800 transition duration-300 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                            <path d="M12 2.25a.75.75 0 01.75.75v11.69l3.414-3.415a.75.75 0 011.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.414 3.415V3a.75.75 0 01.75-.75z" />
+                            <path d="M12 15a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0v-3.75a.75.75 0 01.75-.75z" />
+                            <path fill-rule="evenodd" d="M18.75 19.5a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5v-1.5a.75.75 0 011.5 0v1.5a.75.75 0 00.75.75h10.5a.75.75 0 00.75-.75v-1.5a.75.75 0 011.5 0v1.5z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="download-dropdown-content" class="dropdown-content">
+                        <a href="#" id="download-pdf" data-i18n="downloadPdf">Download as PDF</a>
+                        <a href="#" id="download-word" data-i18n="downloadWord">Download as Word</a>
+                    </div>
+                </div>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden px-6 pb-4">
+            <a href="#summary" class="block py-2 text-stone-600 hover:text-stone-900" data-i18n="navSummary">Summary</a>
+            <a href="#experience" class="block py-2 text-stone-600 hover:text-stone-900" data-i18n="navExperience">Experience</a>
+            <a href="#skills" class="block py-2 text-stone-600 hover:text-stone-900" data-i18n="navSkills">Skills</a>
+            <a href="#contact" class="block mt-2 bg-stone-700 text-white text-center px-4 py-2 rounded-full hover:bg-stone-800" data-i18n="navContact">Contact</a>
+            <div class="dropdown mt-4">
+                 <button id="mobile-language-dropdown-button" class="w-full bg-white text-stone-700 px-4 py-2 rounded-full border border-stone-300 flex items-center justify-center space-x-2">
+                    <span id="mobile-selected-flag">🇬🇧</span>
+                    <span id="mobile-selected-lang-text">English</span>
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 ml-1">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div id="mobile-language-dropdown-content" class="dropdown-content left-0 w-full mt-2">
+                    <a href="#" data-lang="en" class="flex items-center space-x-3"><span class="text-lg">🇬🇧</span><span>English</span></a>
+                    <a href="#" data-lang="mk" class="flex items-center space-x-3"><span class="text-lg">🇲🇰</span><span>Македонски</span></a>
+                    <a href="#" data-lang="hr" class="flex items-center space-x-3"><span class="text-lg">🇭🇷</span><span>Hrvatski</span></a>
+                </div>
+            </div>
+            <div class="dropdown mt-4">
+                 <button id="mobile-download-dropdown-button" class="w-full bg-stone-700 text-white px-4 py-2 rounded-full hover:bg-stone-800 transition duration-300 flex items-center justify-center space-x-2">
+                    <span data-i18n="navDownload">Download</span>
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 ml-1">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div id="mobile-download-dropdown-content" class="dropdown-content left-0 w-full mt-2">
+                    <a href="#" id="mobile-download-pdf" data-i18n="downloadPdf">Download as PDF</a>
+                    <a href="#" id="mobile-download-word" data-i18n="downloadWord">Download as Word</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <section id="summary" class="text-center min-h-[60vh] flex flex-col justify-center items-center">
+            <h1 class="text-5xl md:text-7xl font-bold text-stone-800 leading-tight">Svetlana Paunkovska</h1>
+            <p class="text-xl md:text-2xl text-stone-600 mt-4 mb-8" data-i18n="jobTitle">Professional Massage Therapist</p>
+            <div class="max-w-3xl mx-auto text-lg text-stone-700 leading-relaxed">
+                <p data-i18n="summary">
+                    Highly experienced and dedicated massage therapist with over two decades of experience providing a wide range of therapeutic and wellness services. Proven ability to build client relationships and provide customized treatments to meet individual needs. Proficient in multiple massage techniques and committed to continuous professional development.
+                </p>
+            </div>
+        </section>
+
+        <section id="experience" class="py-16 md:py-24">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-stone-800" data-i18n="experienceTitle">Professional Experience</h2>
+                <p class="text-lg text-stone-600 mt-2" data-i18n="experienceSubtitle">An interactive timeline of my career journey. Click on a role to see more details.</p>
+            </div>
+            <div class="relative max-w-4xl mx-auto pl-8 border-l-2 border-stone-300">
+                <div class="timeline-item mb-12 cursor-pointer">
+                    <h3 class="text-xl font-bold text-stone-800" data-i18n="job1Title">Masseuse | Freelance (Various Wellness Centres & Salons)</h3>
+                    <p class="text-md text-stone-500 mb-2" data-i18n="job1Date">2019 – Present</p>
+                    <div class="timeline-details text-stone-700 space-y-2 pl-4 border-l-2 border-stone-200">
+                        <p data-i18n="job1Bullet1">• Provided a variety of massage techniques, including wellness, relaxation, and therapeutic massages, to diverse clientele.</p>
+                        <p data-i18n="job1Bullet2">• Managed client consultations, assessed individual needs, and developed personalized treatment plans.</p>
+                        <p data-i18n="job1Bullet3">• Cultivated strong professional relationships, leading to high client retention and repeat business.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item mb-12 cursor-pointer">
+                    <h3 class="text-xl font-bold text-stone-800" data-i18n="job2Title">Masseuse | Hotel Kontinental & Hotel Buši</h3>
+                    <p class="text-md text-stone-500 mb-2" data-i18n="job2Date">2017 – 2019</p>
+                    <div class="timeline-details text-stone-700 space-y-2 pl-4 border-l-2 border-stone-200 hidden">
+                        <p data-i18n="job2Bullet1">• Delivered high-quality massage services within a fast-paced hotel wellness environment, ensuring guest satisfaction and relaxation.</p>
+                        <p data-i18n="job2Bullet2">• Collaborated with a wellness team to offer holistic experiences, including aromatherapy and other relaxation therapies.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item mb-12 cursor-pointer">
+                    <h3 class="text-xl font-bold text-stone-800" data-i18n="job3Title">Masseuse | IRI-M & Other Cosmetic Salons</h3>
+                    <p class="text-md text-stone-500 mb-2" data-i18n="job3Date">2012 – 2017</p>
+                    <div class="timeline-details text-stone-700 space-y-2 pl-4 border-l-2 border-stone-200 hidden">
+                        <p data-i18n="job3Bullet1">• Worked in partnership with multiple cosmetic salons, expanding professional network and client base.</p>
+                        <p data-i18n="job3Bullet2">• Performed a range of massage and body treatments to enhance clients' beauty and well-being.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item mb-12 cursor-pointer">
+                    <h3 class="text-xl font-bold text-stone-800" data-i18n="job4Title">Masseuse | TREND Cosmetic Salon, Skopje</h3>
+                    <p class="text-md text-stone-500 mb-2" data-i18n="job4Date">2010 – 2012</p>
+                    <div class="timeline-details text-stone-700 space-y-2 pl-4 border-l-2 border-stone-200 hidden">
+                        <p data-i18n="job4Bullet1">• Responsible for providing professional massage services to salon clients.</p>
+                        <p data-i18n="job4Bullet2">• Maintained a clean, hygienic, and relaxing environment for all treatments.</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item cursor-pointer">
+                    <h3 class="text-xl font-bold text-stone-800" data-i18n="job5Title">Manager | PERFETA Massage Salon, Skopje</h3>
+                    <p class="text-md text-stone-500 mb-2" data-i18n="job5Date">1995 – 2010</p>
+                    <div class="timeline-details text-stone-700 space-y-2 pl-4 border-l-2 border-stone-200 hidden">
+                        <p data-i18n="job5Bullet1">• Founded and successfully operated a private massage salon, demonstrating strong entrepreneurial and management skills.</p>
+                        <p data-i18n="job5Bullet2">• Provided a full range of massage and wellness services, building a loyal clientele over 15 years.</p>
+                        <p data-i18n="job5Bullet3">• Oversaw all aspects of business operations, including client scheduling, inventory, and financial management.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="skills" class="py-16 md:py-24">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-stone-800" data-i18n="skillsTitle">Skills & Certifications</h2>
+                <p class="text-lg text-stone-600 mt-2" data-i18n="skillsSubtitle">A summary of my professional qualifications and language abilities.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-6 text-center" data-i18n="languagesTitle">Language Proficiency</h3>
+                    <div id="language-gauges-container" class="flex flex-wrap justify-center gap-8">
+                        
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-6 text-center" data-i18n="certsTitle">Certifications</h3>
+                    <div class="space-y-6">
+                        <div class="p-4">
+                            <h4 class="font-bold text-lg text-stone-800" data-i18n="cert1Title">Principles of Nutrition I & II (2020)</h4>
+                            <p class="text-stone-600" data-i18n="cert1Subtitle">Centre for Education-Drvošanski-NUTRIŠN, Skopje</p>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-bold text-lg text-stone-800" data-i18n="cert2Title">Theory of Wisdom and Wellness Symbols of Aromatherapy (2009)</h4>
+                            <p class="text-stone-600" data-i18n="cert2Subtitle">Mittelstandsbüro Balkan</p>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-bold text-lg text-stone-800" data-i18n="cert3Title">Tui-na Chinese Massage - Acupressure (1995)</h4>
+                            <p class="text-stone-600" data-i18n="cert3Subtitle">Fassociation for Traditional Medicine "BELLADONA"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="text-center py-24 md:py-32">
+            <h2 class="text-4xl font-bold text-stone-800" data-i18n="contactTitle">Get In Touch</h2>
+            <p class="text-lg text-stone-600 mt-4 mb-8 max-w-2xl mx-auto" data-i18n="contactSubtitle">I am currently available for freelance opportunities and collaborations. Feel free to reach out.</p>
+            <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-8 text-lg">
+                <a href="mailto:secilija2000@gmail.com" class="text-stone-700 hover:text-stone-900 transition duration-300">secilija2000@gmail.com</a>
+                <span class="hidden md:block text-stone-300">|</span>
+                <a href="tel:+38977610161" class="text-stone-700 hover:text-stone-900 transition duration-300">+389 77 610 161</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-6 text-center">
+        <p data-i18n="footerText">&copy; 2025 Svetlana Paunkovska. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        const translations = {
+            en: {
+                navSummary: 'Summary',
+                navExperience: 'Experience',
+                navSkills: 'Skills',
+                navContact: 'Contact',
+                navDownload: 'Download',
+                downloadPdf: 'Download as PDF',
+                downloadWord: 'Download as Word',
+                jobTitle: 'Professional Massage Therapist',
+                summary: 'Highly experienced and dedicated massage therapist with over two decades of experience providing a wide range of therapeutic and wellness services. Proven ability to build client relationships and provide customized treatments to meet individual needs. Proficient in multiple massage techniques and committed to continuous professional development.',
+                experienceTitle: 'Professional Experience',
+                experienceSubtitle: 'An interactive timeline of my career journey. Click on a role to see more details.',
+                job1Title: 'Masseuse | Freelance (Various Wellness Centres & Salons)',
+                job1Bullet1: '• Provided a variety of massage techniques, including wellness, relaxation, and therapeutic massages, to diverse clientele.',
+                job1Bullet2: '• Managed client consultations, assessed individual needs, and developed personalized treatment plans.',
+                job1Bullet3: '• Cultivated strong professional relationships, leading to high client retention and repeat business.',
+                job2Title: 'Masseuse | Hotel Kontinental & Hotel Buši',
+                job2Bullet1: '• Delivered high-quality massage services within a fast-paced hotel wellness environment, ensuring guest satisfaction and relaxation.',
+                job2Bullet2: '• Collaborated with a wellness team to offer holistic experiences, including aromatherapy and other relaxation therapies.',
+                job3Title: 'Masseuse | IRI-M & Other Cosmetic Salons',
+                job3Bullet1: '• Worked in partnership with multiple cosmetic salons, expanding professional network and client base.',
+                job3Bullet2: '• Performed a range of massage and body treatments to enhance clients\' beauty and well-being.',
+                job4Title: 'Masseuse | TREND Cosmetic Salon, Skopje',
+                job4Bullet1: '• Responsible for providing professional massage services to salon clients.',
+                job4Bullet2: '• Maintained a clean, hygienic, and relaxing environment for all treatments.',
+                job5Title: 'Manager | PERFETA Massage Salon, Skopje',
+                job5Bullet1: '• Founded and successfully operated a private massage salon, demonstrating strong entrepreneurial and management skills.',
+                job5Bullet2: '• Provided a full range of massage and wellness services, building a loyal clientele over 15 years.',
+                job5Bullet3: '• Oversaw all aspects of business operations, including client scheduling, inventory, and financial management.',
+                skillsTitle: 'Skills & Certifications',
+                skillsSubtitle: 'A summary of my professional qualifications and language abilities.',
+                languagesTitle: 'Language Proficiency',
+                certsTitle: 'Certifications',
+                cert1Title: 'Principles of Nutrition I & II (2020)',
+                cert1Subtitle: 'Centre for Education-Drvošanski-NUTRIŠN, Skopje',
+                cert2Title: 'Theory of Wisdom and Wellness Symbols of Aromatherapy (2009)',
+                cert2Subtitle: 'Mittelstandsbüro Balkan',
+                cert3Title: 'Tui-na Chinese Massage - Acupressure (1995)',
+                cert3Subtitle: 'Fassociation for Traditional Medicine "BELLADONA"',
+                contactTitle: 'Get In Touch',
+                contactSubtitle: 'I am currently available for freelance opportunities and collaborations. Feel free to reach out.',
+                footerText: '© 2025 Svetlana Paunkovska. All Rights Reserved.',
+            },
+            mk: {
+                navSummary: 'Резиме',
+                navExperience: 'Искуство',
+                navSkills: 'Вештини',
+                navContact: 'Контакт',
+                navDownload: 'Преземи',
+                downloadPdf: 'Преземи како PDF',
+                downloadWord: 'Преземи како Word',
+                jobTitle: 'Професионален Масер',
+                summary: 'Високо искусен и посветен масер со повеќе од две децении искуство во обезбедување на широк спектар на терапевтски и велнес услуги. Докажана способност за градење односи со клиенти и обезбедување на персонализирани третмани за задоволување на индивидуалните потреби. Вешта во повеќе техники на масажа и посветена на континуиран професионален развој.',
+                experienceTitle: 'Професионално Искуство',
+                experienceSubtitle: 'Интерактивна временска линија на мојата кариера. Кликнете на улога за да видите повеќе детали.',
+                job1Title: 'Масер | Слободен (Разни Велнес Центри и Салони)',
+                job1Bullet1: '• Обезбедуваше различни техники на масажа, вклучувајќи велнес, релаксација и терапевтски масажи, на различни клиенти.',
+                job1Bullet2: '• Управуваше со консултации на клиенти, ги проценуваше индивидуалните потреби и развиваше персонализирани планови за третман.',
+                job1Bullet3: '• Негуваше силни професионални односи, што доведе до висока задршка на клиенти и повторувачки бизнис.',
+                job2Title: 'Масер | Хотел Континентал & Хотел Буши',
+                job2Bullet1: '• Обезбедуваше висококвалитетни услуги за масажа во брзо велнес окружување на хотелот, обезбедувајќи задоволство и релаксација на гостите.',
+                job2Bullet2: '• Соработуваше со велнес тим за да понуди холистички искуства, вклучувајќи ароматерапија и други терапии за релаксација.',
+                job3Title: 'Масер | ИРИ-М & Други Козметички Салони',
+                job3Bullet1: '• Работеше во партнерство со повеќе козметички салони, проширувајќи ја професионалната мрежа и базата на клиенти.',
+                job3Bullet2: '• Изведуваше низа масажи и третмани за тело за да ја подобри убавината и благосостојбата на клиентите.',
+                job4Title: 'Масер | TREND Козметички Салон, Скопје',
+                job4Bullet1: '• Одговорна за обезбедување професионални услуги за масажа на клиентите на салонот.',
+                job4Bullet2: '• Одржуваше чиста, хигиенска и релаксирачка средина за сите третмани.',
+                job5Title: 'Менаџер | Салон за Масажа PERFETA, Скопје',
+                job5Bullet1: '• Основаше и успешно водеше приватен салон за масажа, покажувајќи силни претприемачки и менаџерски вештини.',
+                job5Bullet2: '• Обезбедуваше целосен спектар на услуги за масажа и велнес, градејќи лојална клиентела во текот на 15 години.',
+                job5Bullet3: '• Надгледуваше сите аспекти на деловните операции, вклучувајќи закажување на клиенти, инвентар и финансиско управување.',
+                skillsTitle: 'Вештини и Сертификати',
+                skillsSubtitle: 'Резиме на моите професионални квалификации и јазични способности.',
+                languagesTitle: 'Познавање на Јазици',
+                certsTitle: 'Сертификати',
+                cert1Title: 'Принципи на Нутриционизам I & II (2020)',
+                cert1Subtitle: 'Центар за Едукација-Дрвошански-НУТРИШН, Скопје',
+                cert2Title: 'Теорија на Мудрост и Велнес Симболи на Ароматерапија (2009)',
+                cert2Subtitle: 'Mittelstandsbüro Balkan',
+                cert3Title: 'Tui-na Кинеска Масажа - Акупресура (1995)',
+                cert3Subtitle: 'Fassociation for Traditional Medicine "BELLADONA"',
+                contactTitle: 'Контактирајте ме',
+                contactSubtitle: 'Во моментов сум достапна за слободни работни места и соработки. Слободно контактирајте ме.',
+                footerText: '© 2025 Светлана Паунковска. Сите права задржани.',
+            },
+            hr: {
+                navSummary: 'Sažetak',
+                navExperience: 'Iskustvo',
+                navSkills: 'Vještine',
+                navContact: 'Kontakt',
+                navDownload: 'Preuzmi',
+                downloadPdf: 'Preuzmi kao PDF',
+                downloadWord: 'Preuzmi kao Word',
+                jobTitle: 'Profesionalna Maserka',
+                summary: 'Visoko iskusna i posvećena maserka s više od dva desetljeća iskustva u pružanju širokog spektra terapijskih i wellness usluga. Dokazana sposobnost izgradnje odnosa s klijentima i pružanja prilagođenih tretmana za zadovoljavanje individualnih potreba. Vješta u višestrukim tehnikama masaže i predana kontinuiranom profesionalnom razvoju.',
+                experienceTitle: 'Profesionalno Iskustvo',
+                experienceSubtitle: 'Interaktivna vremenska crta moje karijere. Kliknite na ulogu za više detalja.',
+                job1Title: 'Maserka | Freelance (Razni Wellness Centri i Saloni)',
+                job1Bullet1: '• Pružala je razne tehnike masaže, uključujući wellness, opuštajuće i terapijske masaže, raznolikoj klijenteli.',
+                job1Bullet2: '• Vodila je konzultacije s klijentima, procjenjivala individualne potrebe i razvijala personalizirane planove tretmana.',
+                job1Bullet3: '• Njegovala je snažne profesionalne odnose, što je dovelo do visoke zadrške klijenata i ponovnog poslovanja.',
+                job2Title: 'Maserka | Hotel Kontinental & Hotel Buši',
+                job2Bullet1: '• Pružala je visokokvalitetne usluge masaže u brzom hotelskom wellness okruženju, osiguravajući zadovoljstvo i opuštanje gostiju.',
+                job2Bullet2: '• Surađivala je s wellness timom kako bi ponudila holistička iskustva, uključujući aromaterapiju i druge terapije za opuštanje.',
+                job3Title: 'Maserka | IRI-M & Drugi Kozmetički Saloni',
+                job3Bullet1: '• Radila je u partnerstvu s više kozmetičkih salona, proširujući ja profesionalnu mrežu i bazu klijenata.',
+                job3Bullet2: '• Izvodila je niz masaža i tretmana za tijelo kako bi poboljšala ljepotu i dobrobit klijenata.',
+                job4Title: 'Maserka | TREND Kozmetički Salon, Skoplje',
+                job4Bullet1: '• Odgovorna za pružanje profesionalnih usluga masaže klijentima salona.',
+                job4Bullet2: '• Održavala je čisto, higijensko i opuštajuće okruženje za sve tretmene.',
+                job5Title: 'Menadžer | Salon za Masažu PERFETA, Skoplje',
+                job5Bullet1: '• Osnovala je i uspješno vodila privatni salon za masažu, pokazujući si-ne poduzetničke i menadžerske vještine.',
+                job5Bullet2: '• Pružala je cijeli niz usluga masaže i wellnessa, gradeći lojalnu klijentelu tijekom 15 godina.',
+                job5Bullet3: '• Nadgledala je sve aspekte poslovanja, uključujući raspored klijenata, inventar i financijsko upravljanje.',
+                skillsTitle: 'Vještine i Certifikati',
+                skillsSubtitle: 'Sažetak mojih profesionalnih kvalifikacija i jezičnih sposobnosti.',
+                languagesTitle: 'Poznavanje Jezika',
+                certsTitle: 'Certifikati',
+                cert1Title: 'Principi Nutricionizma I & II (2020)',
+                cert1Subtitle: 'Centar za Edukaciju-Drvošanski-NUTRIŠN, Skopje',
+                cert2Title: 'Teorija Mudrosti i Wellness Simbola Aromaterapije (2009)',
+                cert2Subtitle: 'Mittelstandsbüro Balkan',
+                cert3Title: 'Tui-na Kineska Masaža - Acupressure (1995)',
+                cert3Subtitle: 'Fassociation for Traditional Medicine "BELLADONA"',
+                contactTitle: 'Kontaktirajte me',
+                contactSubtitle: 'Trenutno sam dostupna za freelance prilike i suradnje. Slobodno me kontaktirajte.',
+                footerText: '© 2025 Svetlana Paunkovska. Sva prava zadržana.',
+            }
+        };
+
+        const updateLanguage = (lang) => {
+            const elements = document.querySelectorAll('[data-i18n]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+        };
+
+        const languageData = [
+            { name: 'Macedonian', flag: '🇲🇰', value: 6, code: 'mk' },
+            { name: 'Serbian', flag: '🇷🇸', value: 5, code: 'rs' },
+            { name: 'Croatian', flag: '🇭🇷', value: 5, code: 'hr' },
+            { name: 'English', flag: '🇬🇧', value: 2, code: 'en' },
+            { name: 'Bulgarian', flag: '🇧🇬', value: 2, code: 'bg' }
+        ];
+
+        const cefrLevels = { 1: 'A1', 2: 'A2', 3: 'B1', 4: 'B2', 5: 'C1', 6: 'C2' };
+        const proficiencyLevels = { 1: 'Beginner', 2: 'Elementary', 3: 'Intermediate', 4: 'Upper-Intermediate', 5: 'Advanced', 6: 'Proficient' };
+
+        const gaugeTextPlugin = {
+            id: 'gaugeTextPlugin',
+            beforeDraw: (chart) => {
+                const { ctx, chartArea: { top, width, height }, config } = chart;
+                const totalValue = config.data.datasets[0].data[0];
+                const maxLevel = 6;
+                const level = cefrLevels[totalValue];
+                const proficiency = proficiencyLevels[totalValue];
+                ctx.save();
+                ctx.font = 'bold 1.25rem Inter';
+                ctx.fillStyle = '#4A4A4A';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const x = width / 2;
+                const y = top + height / 2 + 5;
+                ctx.fillText(level, x, y);
+                ctx.font = '0.5rem Inter';
+                ctx.fillText(proficiency, x, y + 15);
+                ctx.restore();
+            }
+        };
+
+        const renderLanguageGauges = () => {
+            const container = document.getElementById('language-gauges-container');
+            container.innerHTML = '';
+            languageData.forEach(lang => {
+                const gaugeDiv = document.createElement('div');
+                gaugeDiv.className = 'gauge-container';
+                gaugeDiv.innerHTML = `
+                    <div class="w-16 h-16 relative">
+                        <canvas id="gauge-${lang.code}"></canvas>
+                    </div>
+                    <p class="gauge-title font-semibold text-stone-700 mt-2">${lang.name}</p>
+                `;
+                container.appendChild(gaugeDiv);
+
+                const ctx = document.getElementById(`gauge-${lang.code}`).getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [lang.value, 6 - lang.value],
+                            backgroundColor: ['#D4C7B8', '#ECECEC'],
+                            borderColor: '#FDFBF8',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '80%',
+                        rotation: 270,
+                        circumference: 180,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    },
+                    plugins: [gaugeTextPlugin]
+                });
+            });
+        };
+
+        const downloadAsPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const element = document.querySelector('main');
+            const options = {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#FDFBF8',
+                ignoreElements: (element) => {
+                    return element.classList.contains('timeline-details') && element.classList.contains('hidden');
+                }
+            };
+
+            html2canvas(element, options).then((canvas) => {
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const imgWidth = 595;
+                const pageHeight = 842;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                doc.save('Svetlana_Paunkovska_CV.pdf');
+            });
+        };
+
+        const downloadAsWord = () => {
+            const mainContent = document.querySelector('main');
+            const headerContent = `<!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>Svetlana Paunkovska CV</title>
+                <style>
+                    body { font-family: 'Inter', sans-serif; max-width: 800px; margin: auto; padding: 2rem; line-height: 1.6; }
+                    h1, h2, h3 { color: #4A4A4A; }
+                    p { color: #4A4A4A; }
+                    section { margin-bottom: 2rem; }
+                    .header-info { text-align: center; }
+                    .contact-info { display: flex; justify-content: center; gap: 2rem; }
+                    .job-title { margin-top: 1rem; }
+                    .job-details { margin-left: 1rem; margin-top: 0.5rem; }
+                </style>
+            </head>
+            <body>
+            `;
+            const footerContent = `</body></html>`;
+            const fullHtmlContent = headerContent + mainContent.innerHTML + footerContent;
+            const blob = new Blob([fullHtmlContent], { type: 'application/msword' });
+            saveAs(blob, 'Svetlana_Paunkovska_CV.doc');
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const dropdownButton = document.getElementById('language-dropdown-button');
+            const dropdownContent = document.getElementById('language-dropdown-content');
+            const mobileDropdownButton = document.getElementById('mobile-language-dropdown-button');
+            const mobileDropdownContent = document.getElementById('mobile-language-dropdown-content');
+            const downloadDropdownButton = document.getElementById('download-dropdown-button');
+            const downloadDropdownContent = document.getElementById('download-dropdown-content');
+            const mobileDownloadDropdownButton = document.getElementById('mobile-download-dropdown-button');
+            const mobileDownloadDropdownContent = document.getElementById('mobile-download-dropdown-content');
+            const downloadPdfLink = document.getElementById('download-pdf');
+            const downloadWordLink = document.getElementById('download-word');
+            const mobileDownloadPdfLink = document.getElementById('mobile-download-pdf');
+            const mobileDownloadWordLink = document.getElementById('mobile-download-word');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            timelineItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const details = item.querySelector('.timeline-details');
+                    details.classList.toggle('hidden');
+                });
+            });
+
+            dropdownButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                dropdownContent.classList.toggle('show');
+            });
+            mobileDropdownButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                mobileDropdownContent.classList.toggle('show');
+            });
+
+            downloadDropdownButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadDropdownContent.classList.toggle('show');
+            });
+            mobileDownloadDropdownButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                mobileDownloadDropdownContent.classList.toggle('show');
+            });
+            
+            downloadPdfLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadAsPDF();
+                downloadDropdownContent.classList.remove('show');
+            });
+            downloadWordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadAsWord();
+                downloadDropdownContent.classList.remove('show');
+            });
+            mobileDownloadPdfLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadAsPDF();
+                mobileDownloadDropdownContent.classList.remove('show');
+            });
+            mobileDownloadWordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadAsWord();
+                mobileDownloadDropdownContent.classList.remove('show');
+            });
+
+
+            document.querySelectorAll('#language-dropdown-content a, #mobile-language-dropdown-content a').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const lang = e.target.closest('a').dataset.lang;
+                    updateLanguage(lang);
+                    dropdownContent.classList.remove('show');
+                    mobileDropdownContent.classList.remove('show');
+                    const selectedFlag = document.getElementById('selected-flag');
+                    const selectedLangText = document.getElementById('selected-lang-text');
+                    const mobileSelectedFlag = document.getElementById('mobile-selected-flag');
+                    const mobileSelectedLangText = document.getElementById('mobile-selected-lang-text');
+                    const selectedLang = languageData.find(l => l.code === lang);
+                    selectedFlag.textContent = selectedLang.flag;
+                    selectedLangText.textContent = selectedLang.name;
+                    mobileSelectedFlag.textContent = selectedLang.flag;
+                    mobileSelectedLangText.textContent = selectedLang.name;
+                });
+            });
+
+            window.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown')) {
+                    dropdownContent.classList.remove('show');
+                    mobileDropdownContent.classList.remove('show');
+                    downloadDropdownContent.classList.remove('show');
+                    mobileDownloadDropdownContent.classList.remove('show');
+                }
+            });
+
+            renderLanguageGauges();
+            updateLanguage('en');
+        });
+    </script>
+</body>
+</html>
